@@ -1,7 +1,7 @@
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   GO111MODULE: "on"
-  PROVIDER: rancher2
+  PROVIDER: rancher
 jobs:
   build_sdk:
     name: build_sdk
@@ -43,7 +43,7 @@ jobs:
         name: pulumi-${{ env.PROVIDER }}
         path: ${{ github.workspace }}/bin
     - name: Restore binary perms
-      run: find ${{ github.workspace }} -name 'pulumi-*-${{ env.PROVIDER }}' -print
+      run: find ${{ github.workspace }} -name "pulumi-*-${{ env.PROVIDER }}" -print
         -exec chmod +x {} \;
     - name: Build SDK
       run: make build_${{ matrix.language }}
@@ -149,7 +149,7 @@ jobs:
         name: pulumi-${{ env.PROVIDER }}
         path: ${{ github.workspace }}/bin
     - name: Restore binary perms
-      run: find ${{ github.workspace }} -name 'pulumi-*-${{ env.PROVIDER }}' -print
+      run: find ${{ github.workspace }} -name "pulumi-*-${{ env.PROVIDER }}" -print
         -exec chmod +x {} \;
     - name: Download SDK
       uses: actions/download-artifact@v2
