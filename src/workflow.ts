@@ -16,14 +16,31 @@ export class Env {
 }
 */
 
+interface Step {
+  name?: string;
+  uses?: string;
+  run?: string;
+  with?: any;
+}
+
+interface Steps extends Array<Step>{};
+
+interface Job {
+  name: string;
+  on: any;
+  needs?: string;
+  steps: Steps;
+}
+
 // A base job, all of these have the same required steps
-class BaseJob {
+class BaseJob implements Job {
   name: string;
   needs?: string;
   container?: string;
   strategy?: any; // FIXME: Stop cheating, this should be an interface
+  on: any;
   "runs-on" = "ubuntu-latest";
-  steps: any[] = [
+  steps: Steps = [
     {
       name: "Checkout Repo",
       uses: "actions/checkout@v2"
@@ -64,9 +81,6 @@ class BaseJob {
     this.steps.push(step);
     return this
   }
-}
-
-export class Job extends BaseJob {
 }
 
 export class MultilangJob extends BaseJob {
@@ -115,20 +129,25 @@ export class MultilangJob extends BaseJob {
 
 }
 
+interface Workflow {
+  name: string;
+  jobs: any;
+}
 
-export class GithubWorkflow {
+
+export class GithubWorkflow implements Workflow {
   name: string;
   env: object;
   on: object;
   // env = new Env(this.provider);
-  jobs = {
-    lint: new Job("lint", { container: "golangci/golangci-lint:v1.25.1"}).addStep(
+  jobs: any = {
+    lint: new BaseJob("lint", { container: "golangci/golangci-lint:v1.25.1"}).addStep(
       {
         name: "Run golangci",
         run: "make lint_provider",
       }
     ),
-    prerequisites: new Job("prerequisites")
+    prerequisites: new BaseJob("prerequisites")
       .addStep({
         name: "Build tfgen & provider binaries",
         run: "make provider",
@@ -203,4 +222,50 @@ export class GithubWorkflow {
   constructor(name, env, on, params?: Partial<GithubWorkflow>) {
     Object.assign(this, {name}, {env}, on, params);
   }
+}
+
+export class GithubReleaseWorkFlow extends GithubWorkflow {
+  jobs = Object.assign(this.jobs, {
+    publish: {
+      "runs-on": "ubuntu-latest",
+      needs: "test",
+      steps: [
+        {
+          name: "Checkout",
+          uses: "actions/checkout@v2",
+        },
+        {
+          name: "Configure AWS Credentials",
+          uses: "aws-actions/configure-aws-credentials@v1",
+          with: {
+            "aws-access-key-id": "${{ secrets.AWS_ACCESS_KEY_ID }}",
+            "aws-secret-access-key": "${{ secrets.AWS_SECRET_ACCESS_KEY }}",
+            "aws-region": "us-east-2",
+            "role-to-assume": "${{ secrets.AWS_UPLOAD_ROLE_ARN }}",
+            "role-external-id": "upload-pulumi-release",
+            "role-duration-seconds": 3600,
+            "role-session-name": "${{ env.PROVIDER}}@githubActions",
+          }
+        },
+        {
+          name: "Setup Go",
+          uses: "actions/setup-go@v2",
+          with: {
+            "go-version": "1.13.x"
+          }
+        },
+        {
+          name: "Run GoRelease",
+          uses: "goreleaser/goreleaser-action@v2",
+          with: {
+            version: "latest",
+            args: "release --rm-dist"
+          },
+          env: {
+            "GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}",
+          }
+        }
+      ]
+    }
+  })
 }

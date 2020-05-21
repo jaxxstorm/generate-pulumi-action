@@ -7,7 +7,7 @@ const prWorkflow = name => new g.GithubWorkflow(`pull-request`,
   { on: { pull_request: { branches: [ "master" ] } }
   })
 
-const releaseWorkflow = name => new g.GithubWorkflow(`release`,
+const releaseWorkflow = name => new g.GithubReleaseWorkFlow(`release`,
   { GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}", GO111MODULE: "on", PROVIDER: provider },
   { on: { push: { tags: [ "v*" ] } }
   })
