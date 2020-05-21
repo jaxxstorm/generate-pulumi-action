@@ -138,7 +138,9 @@ interface Workflow {
 export class GithubWorkflow implements Workflow {
   name: string;
   env: object;
-  on: object;
+  on: any = {
+    pull_request: { branches: [ "master" ] }
+  };
   // env = new Env(this.provider);
   jobs: any = {
     lint: new BaseJob("lint", { container: "golangci/golangci-lint:v1.25.1"}).addStep(
@@ -229,6 +231,9 @@ export class GithubReleaseWorkFlow extends GithubWorkflow {
     publish: {
       "runs-on": "ubuntu-latest",
       needs: "test",
+      on: {
+        push: { tags: [ "v*.[0-99]"] }
+      },
       steps: [
         {
           name: "Checkout",

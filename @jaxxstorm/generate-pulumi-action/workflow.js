@@ -109,6 +109,9 @@ export class MultilangJob extends BaseJob {
 }
 export class GithubWorkflow {
     constructor(name, env, on, params) {
+        this.on = {
+            pull_request: { branches: ["master"] }
+        };
         // env = new Env(this.provider);
         this.jobs = {
             lint: new BaseJob("lint", { container: "golangci/golangci-lint:v1.25.1" }).addStep({
@@ -194,6 +197,9 @@ export class GithubReleaseWorkFlow extends GithubWorkflow {
             publish: {
                 "runs-on": "ubuntu-latest",
                 needs: "test",
+                on: {
+                    push: { tags: ["v*.[0-99]"] }
+                },
                 steps: [
                     {
                         name: "Checkout",
