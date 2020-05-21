@@ -34,7 +34,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "lint": "eslint {src,tests}/**/*.ts",
+    "lint": "eslint {src,tests}/**/*.ts"
   },
   "version": "0.1.0"
 }
