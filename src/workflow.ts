@@ -1,3 +1,4 @@
+/*
 export class On {
   pull_request = {
     branches: ["master"]
@@ -8,45 +9,9 @@ export class On {
 }
 
 export class Env {
-  PROVIDER: string;
-  GO111MODULE = "on";
-  GITHUB_TOKEN = "${{ secrets.GITHUB_TOKEN }}";
+
   constructor(PROVIDER, params?: Partial<Env>) {
-    Object.assign(this, {PROVIDER}, params);
-  }
-}
-
-export class Legend {
-  show = true;
-  values = false;
-  min = false;
-  max = false;
-  current = false;
-  total = false;
-  avg = false;
-  alignAsTable = false;
-  rightSide = false;
-  hideEmpty = undefined;
-  hideZero = undefined;
-  sort = undefined;
-  sortDesc = undefined;
-
-  constructor(params?: Partial<Legend>) {
-    Object.assign(this, params);
-  }
-}
-
-/*
-class Jobs {
-  lint = new Lint();
-}
-
-class Lint {
-  "runs-on" = true;
-  container = "golangci/golangci-lint:v1.25.1";
-  steps: any[] = [];
-  constructor(params?: Partial<Lint>) {
-    Object.assign(this, params);
+    Object.assign(this, PROVIDER, params);
   }
 }
 */
@@ -55,6 +20,9 @@ class Lint {
 class BaseJob {
   name: string;
   needs?: string;
+  container?: string;
+  strategy?: any; // FIXME: Stop cheating, this should be an interface
+  "runs-on" = "ubuntu-latest";
   steps: any[] = [
     {
       name: "Checkout Repo",
@@ -62,7 +30,7 @@ class BaseJob {
     },
     {
       name: "Unshallow clone for tags",
-      runs: "git fetch --prune --unshallow"
+      run: "git fetch --prune --unshallow"
     },
     {
       name: "Install Go",
@@ -89,27 +57,150 @@ class BaseJob {
   constructor(name, params?: Partial<BaseJob>) {
     Object.assign(this, { name }, params);
   }
+
+  // FIXME: we should accept an array here and flatten it
+  // but for now, let's just make this a single operation
+  addStep(step) {
+    this.steps.push(step);
+    return this
+  }
 }
 
 export class Job extends BaseJob {
 }
 
+export class MultilangJob extends BaseJob {
+  strategy = {
+    "fail-fast": true,
+    matrix: {
+      language: [ "nodejs", "python", "dotnet"]
+    }
+  };
+  steps = this.steps.concat([
+    {
+      name: "Setup Node",
+      uses: "actions/setup-node@v1",
+      with: {
+        "node-version": '13.x',
+        "registry-url": "https://registry.npmjs.org"
+      }
+    },
+    {
+      name: "Setup DotNet",
+      uses: "actions/setup-dotnet@v1",
+      with: {
+        "dotnet-version": '3.1.201',
+      }
+    },
+    {
+      name: "Setup Python",
+      uses: "actions/setup-python@v1",
+      with: {
+        "python-version": "3.x",
+      }
+    },
+    {
+      name: "Download provider + tfgen binaries",
+      uses: "actions/download-artifact@v2",
+      with: {
+        name: "pulumi-${{ env.PROVIDER }}",
+        path: "${{ github.workspace }}/bin",
+      }
+    },
+    {
+      name: "Restore binary perms",
+      run: "find ${{ github.workspace }} -name 'pulumi-*-${{ env.PROVIDER }}' -print -exec chmod +x {} \\;"
+    }
+  ]);
+
+}
+
+
 export class GithubWorkflow {
   name: string;
-  on = new On();
-  env = new Env("rancher2");
+  env: object;
+  on: object;
+  // env = new Env(this.provider);
   jobs = {
-    lint: new Job("lint"),
-    prerequisites: new Job("prerequisites"),
-    build_sdk: new Job("build_sdk", {
+    lint: new Job("lint", { container: "golangci/golangci-lint:v1.25.1"}).addStep(
+      {
+        name: "Run golangci",
+        run: "make lint_provider",
+      }
+    ),
+    prerequisites: new Job("prerequisites")
+      .addStep({
+        name: "Build tfgen & provider binaries",
+        run: "make provider",
+      })
+      .addStep(
+      {
+        name: "Upload artifacts",
+        uses: "actions/upload-artifact@v2",
+        with: {
+          name: "pulumi-${{ env.PROVIDER }}",
+          path: "${{ github.workspace }}/bin"
+        }
+      },
+    ),
+    build_sdk: new MultilangJob("build_sdk", {
       needs: "prerequisites",
-    }),
-    test: new Job("test", {
+    })
+      .addStep({
+        name: "Build SDK",
+        run: "make build_${{ matrix.language }}"
+      })
+      .addStep({
+        name: "Upload artifacts",
+        uses: "actions/upload-artifact@v2",
+        with: {
+          name: "${{ matrix.language  }}-sdk",
+          path: "${{ github.workspace}}/sdk/${{ matrix.language }}"
+        }
+      }),
+    test: new MultilangJob("test", {
       needs: "build_sdk",
-    }),
+    })
+      .addStep({
+        name: "Download SDK",
+        uses: "actions/download-artifact@v2",
+        with: {
+          name: "${{ matrix.language  }}-sdk",
+          path: "${{ github.workspace}}/sdk/${{ matrix.language }}",
+        }
+      })
+      .addStep({
+        name: "Update path",
+        run: "echo ::add-path::${{ github.workspace }}/bin",
+      })
+      .addStep({
+        name: "Install Pulumi CLI",
+        uses: "pulumi/action-install-pulumi-cli@releases/v1"
+      })
+      .addStep({
+        name: "Install pipenv",
+        uses: "dschep/install-pipenv-action@v1",
+      })
+      .addStep({
+        name: "Install dependencies",
+        run: "./scripts/install-${{ matrix.language}}-sdk"
+      })
+      .addStep({
+        name: "Run tests",
+        run: "cd examples && go test -v -count=1 -cover -timeout 2h -tags=${{ matrix.langage }} -parallel 4 .",
+        env: {
+          PULUMI_ACCESS_TOKEN: "${{ secrets.PULUMI_ACCESS_TOKEN }}",
+          PULUMI_API: "https://api.pulumi-staging.io",
+          RANCHER_ACCESS_KEY: "token-74zzn",
+          RANCHER_SECRET_KEY: "${{ secrets.RANCHER_SECRET_KEY }}",
+          RANCHER_INSECURE: "true",
+          RANCHER_URL: "${{ secrets.RANCHER_URL }}",
+          PULUMI_LOCAL_NUGET: "${{ github.workspace }}/nuget",
+        }
+      }),
   }
 
-  constructor(name, params?: Partial<GithubWorkflow>) {
-    Object.assign(this, { name }, params);
+  constructor(name, env, on, params?: Partial<GithubWorkflow>) {
+    Object.assign(this, {name}, {env}, on, params);
   }
 }
