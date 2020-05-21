@@ -1,7 +1,7 @@
 {
   "author": "Lee Briggs",
   "bugs": {
-    "url": "https://github.com/jaxxstorm/generate-pulumi-action/issues"
+    "url": "https://github.com/jaxxstorm/pulumi-action-config/issues"
   },
   "dependencies": {},
   "description": "Generate Pulumi github actions with Typescript",
@@ -18,7 +18,7 @@
     "eslint-plugin-jest": "^22.4.1",
     "typescript": "^3.4.3"
   },
-  "homepage": "https://github.com/jaxxstorm/generate-pulumi-action#readme",
+  "homepage": "https://github.com/jaxxstorm/pulumi-action-config#readme",
   "keywords": [
     "configuration",
     "code",
@@ -30,7 +30,7 @@
   "name": "@jaxxstorm/pulumi-action-config",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jaxxstorm/generate-pulumi-action.git"
+    "url": "git+https://github.com/jaxxstorm/pulumi-action-config.git"
   },
   "scripts": {
     "build": "tsc",

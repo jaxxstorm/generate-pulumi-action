@@ -4,7 +4,7 @@ all: dist
 
 dist:
 	npx tsc
-	cp README.md LICENSE package.json @jaxxstorm/generate-pulumi-action
+	cp README.md LICENSE package.json @jaxxstorm/pulumi-action-config
 
 clean:
 	rm -rf @jaxxstorm

@@ -8,7 +8,7 @@
     "noFallthroughCasesInSwitch": true,
     "noImplicitAny": false,
     "noImplicitReturns": true,
-    "outDir": "@jaxxstorm/generate-pulumi-action",
+    "outDir": "@jaxxstorm/pulumi-action-config",
     "pretty": true,
     "sourceMap": false,
     "strictNullChecks": true,

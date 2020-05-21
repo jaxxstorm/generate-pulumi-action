@@ -1,7 +1,7 @@
-import * as g from '@jaxxstorm/generate-pulumi-action/workflow';
+import * as g from '@jaxxstorm/pulumi-action-config/workflow';
+import * as param from '@jkcfg/std/param';
 
-const provider = "rancher2";
-
+const provider = param.String('provider')
 const prWorkflow = name => new g.GithubWorkflow(`pull-request`,
   { GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}", GO111MODULE: "on", PROVIDER: provider })
 
