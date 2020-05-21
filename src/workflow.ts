@@ -244,13 +244,13 @@ export class GithubWorkflow implements Workflow {
 }
 
 export class GithubReleaseWorkFlow extends GithubWorkflow {
+  on = {
+    push: { tags: ['v*.*.*-**'] },
+  }
   jobs = Object.assign(this.jobs, {
     publish: {
       'runs-on': 'ubuntu-latest',
       needs: 'test',
-      on: {
-        push: { tags: ['v*.[0-99]'] },
-      },
       steps: [
         {
           name: 'Checkout',
@@ -281,11 +281,65 @@ export class GithubReleaseWorkFlow extends GithubWorkflow {
           },
         },
         {
-          name: 'Run GoRelease',
+          name: 'Run GoReleaser',
           uses: 'goreleaser/goreleaser-action@v2',
           with: {
             version: 'latest',
             args: 'release --rm-dist',
+          },
+          env: {
+            // eslint-disable-next-line no-template-curly-in-string
+            GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
+          },
+        },
+      ],
+    },
+  })
+}
+
+export class GithubPrereleaseWorkflow extends GithubWorkflow {
+  on = {
+    push: { tags: ['v*.*.*-**'] },
+  }
+  jobs = Object.assign(this.jobs, {
+    publish: {
+      'runs-on': 'ubuntu-latest',
+      needs: 'test',
+      steps: [
+        {
+          name: 'Checkout',
+          uses: 'actions/checkout@v2',
+        },
+        {
+          name: 'Configure AWS Credentials',
+          uses: 'aws-actions/configure-aws-credentials@v1',
+          with: {
+            // eslint-disable-next-line no-template-curly-in-string
+            'aws-access-key-id': '${{ secrets.AWS_ACCESS_KEY_ID }}',
+            // eslint-disable-next-line no-template-curly-in-string
+            'aws-secret-access-key': '${{ secrets.AWS_SECRET_ACCESS_KEY }}',
+            'aws-region': 'us-east-2',
+            // eslint-disable-next-line no-template-curly-in-string
+            'role-to-assume': '${{ secrets.AWS_UPLOAD_ROLE_ARN }}',
+            'role-external-id': 'upload-pulumi-release',
+            'role-duration-seconds': 3600,
+            // eslint-disable-next-line no-template-curly-in-string
+            'role-session-name': '${{ env.PROVIDER}}@githubActions',
+          },
+        },
+        {
+          name: 'Setup Go',
+          uses: 'actions/setup-go@v2',
+          with: {
+            'go-version': '1.13.x',
+          },
+        },
+        {
+          name: 'Run GoReleaser',
+          uses: 'goreleaser/goreleaser-action@v2',
+          with: {
+            version: 'latest',
+            args: 'release --rm-dist --config=.goreleaser.prelease.yml',
           },
           env: {
             // eslint-disable-next-line no-template-curly-in-string

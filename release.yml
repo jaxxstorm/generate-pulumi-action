@@ -1,7 +1,7 @@
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   GO111MODULE: "on"
-  PROVIDER: rancher
+  PROVIDER: rancher2
 jobs:
   build_sdk:
     name: build_sdk
@@ -111,10 +111,6 @@ jobs:
         path: ${{ github.workspace }}/bin
   publish:
     needs: test
-    "on":
-      push:
-        tags:
-        - v*.[0-99]
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -135,7 +131,7 @@ jobs:
         go-version: 1.13.x
     - env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      name: Run GoRelease
+      name: Run GoReleaser
       uses: goreleaser/goreleaser-action@v2
       with:
         args: release --rm-dist
@@ -215,6 +211,6 @@ jobs:
         - dotnet
 name: release
 "on":
-  pull_request:
-    branches:
-    - master
+  push:
+    tags:
+    - v*.*.*-**

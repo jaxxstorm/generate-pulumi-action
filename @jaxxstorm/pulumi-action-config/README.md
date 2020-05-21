@@ -16,5 +16,19 @@ You'll need:
 First, build the module:
 
 ```
-make dist
+$ make dist
+npx tsc
+cp README.md LICENSE package.json @jaxxstorm/pulumi-action-config
 ```
+
+This will generate the module into `@jaxxstorm/pulumi-action-config`
+
+## Using
+
+Once you have the module built, build a provider!
+
+```
+make config PROVIDER=rancher2
+```
+
+
