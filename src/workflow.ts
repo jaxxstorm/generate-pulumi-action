@@ -23,7 +23,8 @@ interface Step {
   with?: any;
 }
 
-interface Steps extends Array<Step>{};
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+interface Steps extends Array<Step>{}
 
 interface Job {
   name: string;
@@ -39,37 +40,37 @@ class BaseJob implements Job {
   container?: string;
   strategy?: any; // FIXME: Stop cheating, this should be an interface
   on: any;
-  "runs-on" = "ubuntu-latest";
+  'runs-on' = 'ubuntu-latest';
   steps: Steps = [
     {
-      name: "Checkout Repo",
-      uses: "actions/checkout@v2"
+      name: 'Checkout Repo',
+      uses: 'actions/checkout@v2',
     },
     {
-      name: "Unshallow clone for tags",
-      run: "git fetch --prune --unshallow"
+      name: 'Unshallow clone for tags',
+      run: 'git fetch --prune --unshallow',
     },
     {
-      name: "Install Go",
-      uses: "actions/setup-go@v2",
+      name: 'Install Go',
+      uses: 'actions/setup-go@v2',
       with: {
-        "go-version": "1.13.x", // FIXME make this configurable
-      }
+        'go-version': '1.13.x', // FIXME make this configurable
+      },
     },
     {
-      name: "Install tf2pulumi",
-      uses: "jaxxstorm/action-install-gh-release@release/v1-alpha",
+      name: 'Install tf2pulumi',
+      uses: 'jaxxstorm/action-install-gh-release@release/v1-alpha',
       with: {
-        repo: "pulumi/tf2pulumi",
-      }
+        repo: 'pulumi/tf2pulumi',
+      },
     },
     {
-      name: "Install pulumictl",
-      uses: "jaxxstorm/action-install-gh-release@release/v1-alpha",
+      name: 'Install pulumictl',
+      uses: 'jaxxstorm/action-install-gh-release@release/v1-alpha',
       with: {
-        repo: "pulumi/pulumictl",
-      }
-    }
+        repo: 'pulumi/pulumictl',
+      },
+    },
   ];
   constructor(name, params?: Partial<BaseJob>) {
     Object.assign(this, { name }, params);
@@ -79,54 +80,56 @@ class BaseJob implements Job {
   // but for now, let's just make this a single operation
   addStep(step) {
     this.steps.push(step);
-    return this
+    return this;
   }
 }
 
 export class MultilangJob extends BaseJob {
   strategy = {
-    "fail-fast": true,
+    'fail-fast': true,
     matrix: {
-      language: [ "nodejs", "python", "dotnet"]
-    }
+      language: ['nodejs', 'python', 'dotnet'],
+    },
   };
   steps = this.steps.concat([
     {
-      name: "Setup Node",
-      uses: "actions/setup-node@v1",
+      name: 'Setup Node',
+      uses: 'actions/setup-node@v1',
       with: {
-        "node-version": '13.x',
-        "registry-url": "https://registry.npmjs.org"
-      }
+        'node-version': '13.x',
+        'registry-url': 'https://registry.npmjs.org',
+      },
     },
     {
-      name: "Setup DotNet",
-      uses: "actions/setup-dotnet@v1",
+      name: 'Setup DotNet',
+      uses: 'actions/setup-dotnet@v1',
       with: {
-        "dotnet-version": '3.1.201',
-      }
+        'dotnet-version': '3.1.201',
+      },
     },
     {
-      name: "Setup Python",
-      uses: "actions/setup-python@v1",
+      name: 'Setup Python',
+      uses: 'actions/setup-python@v1',
       with: {
-        "python-version": "3.x",
-      }
+        'python-version': '3.x',
+      },
     },
     {
-      name: "Download provider + tfgen binaries",
-      uses: "actions/download-artifact@v2",
+      name: 'Download provider + tfgen binaries',
+      uses: 'actions/download-artifact@v2',
       with: {
-        name: "pulumi-${{ env.PROVIDER }}",
-        path: "${{ github.workspace }}/bin",
-      }
+        // eslint-disable-next-line no-template-curly-in-string
+        name: 'pulumi-${{ env.PROVIDER }}',
+        // eslint-disable-next-line no-template-curly-in-string
+        path: '${{ github.workspace }}/bin',
+      },
     },
     {
-      name: "Restore binary perms",
-      run: "find ${{ github.workspace }} -name 'pulumi-*-${{ env.PROVIDER }}' -print -exec chmod +x {} \\;"
-    }
+      name: 'Restore binary perms',
+      // eslint-disable-next-line no-template-curly-in-string
+      run: 'find ${{ github.workspace }} -name "pulumi-*-${{ env.PROVIDER }}" -print -exec chmod +x {} \\;',
+    },
   ]);
-
 }
 
 interface Workflow {
@@ -139,138 +142,157 @@ export class GithubWorkflow implements Workflow {
   name: string;
   env: object;
   on: any = {
-    pull_request: { branches: [ "master" ] }
+    pull_request: { branches: ['master'] },
   };
   // env = new Env(this.provider);
   jobs: any = {
-    lint: new BaseJob("lint", { container: "golangci/golangci-lint:v1.25.1"}).addStep(
+    lint: new BaseJob('lint', { container: 'golangci/golangci-lint:v1.25.1' }).addStep(
       {
-        name: "Run golangci",
-        run: "make lint_provider",
-      }
-    ),
-    prerequisites: new BaseJob("prerequisites")
-      .addStep({
-        name: "Build tfgen & provider binaries",
-        run: "make provider",
-      })
-      .addStep(
-      {
-        name: "Upload artifacts",
-        uses: "actions/upload-artifact@v2",
-        with: {
-          name: "pulumi-${{ env.PROVIDER }}",
-          path: "${{ github.workspace }}/bin"
-        }
+        name: 'Run golangci',
+        run: 'make lint_provider',
       },
     ),
-    build_sdk: new MultilangJob("build_sdk", {
-      needs: "prerequisites",
+    prerequisites: new BaseJob('prerequisites')
+      .addStep({
+        name: 'Build tfgen & provider binaries',
+        run: 'make provider',
+      })
+      .addStep(
+        {
+          name: 'Upload artifacts',
+          uses: 'actions/upload-artifact@v2',
+          with: {
+            // eslint-disable-next-line no-template-curly-in-string
+            name: 'pulumi-${{ env.PROVIDER }}',
+            // eslint-disable-next-line no-template-curly-in-string
+            path: '${{ github.workspace }}/bin',
+          },
+        },
+      ),
+    build_sdk: new MultilangJob('build_sdk', {
+      needs: 'prerequisites',
     })
       .addStep({
-        name: "Build SDK",
-        run: "make build_${{ matrix.language }}"
+        name: 'Build SDK',
+        // eslint-disable-next-line no-template-curly-in-string
+        run: 'make build_${{ matrix.language }}',
       })
       .addStep({
-        name: "Upload artifacts",
-        uses: "actions/upload-artifact@v2",
+        name: 'Upload artifacts',
+        uses: 'actions/upload-artifact@v2',
         with: {
-          name: "${{ matrix.language  }}-sdk",
-          path: "${{ github.workspace}}/sdk/${{ matrix.language }}"
-        }
+          // eslint-disable-next-line no-template-curly-in-string
+          name: '${{ matrix.language  }}-sdk',
+          // eslint-disable-next-line no-template-curly-in-string
+          path: '${{ github.workspace}}/sdk/${{ matrix.language }}',
+        },
       }),
-    test: new MultilangJob("test", {
-      needs: "build_sdk",
+    test: new MultilangJob('test', {
+      needs: 'build_sdk',
     })
       .addStep({
-        name: "Download SDK",
-        uses: "actions/download-artifact@v2",
+        name: 'Download SDK',
+        uses: 'actions/download-artifact@v2',
         with: {
-          name: "${{ matrix.language  }}-sdk",
-          path: "${{ github.workspace}}/sdk/${{ matrix.language }}",
-        }
+          // eslint-disable-next-line no-template-curly-in-string
+          name: '${{ matrix.language  }}-sdk',
+          // eslint-disable-next-line no-template-curly-in-string
+          path: '${{ github.workspace}}/sdk/${{ matrix.language }}',
+        },
       })
       .addStep({
-        name: "Update path",
-        run: "echo ::add-path::${{ github.workspace }}/bin",
+        name: 'Update path',
+        // eslint-disable-next-line no-template-curly-in-string
+        run: 'echo ::add-path::${{ github.workspace }}/bin',
       })
       .addStep({
-        name: "Install Pulumi CLI",
-        uses: "pulumi/action-install-pulumi-cli@releases/v1"
+        name: 'Install Pulumi CLI',
+        uses: 'pulumi/action-install-pulumi-cli@releases/v1',
       })
       .addStep({
-        name: "Install pipenv",
-        uses: "dschep/install-pipenv-action@v1",
+        name: 'Install pipenv',
+        uses: 'dschep/install-pipenv-action@v1',
       })
       .addStep({
-        name: "Install dependencies",
-        run: "./scripts/install-${{ matrix.language}}-sdk"
+        name: 'Install dependencies',
+        // eslint-disable-next-line no-template-curly-in-string
+        run: './scripts/install-${{ matrix.language}}-sdk',
       })
       .addStep({
-        name: "Run tests",
-        run: "cd examples && go test -v -count=1 -cover -timeout 2h -tags=${{ matrix.langage }} -parallel 4 .",
+        name: 'Run tests',
+        // eslint-disable-next-line no-template-curly-in-string
+        run: 'cd examples && go test -v -count=1 -cover -timeout 2h -tags=${{ matrix.langage }} -parallel 4 .',
         env: {
-          PULUMI_ACCESS_TOKEN: "${{ secrets.PULUMI_ACCESS_TOKEN }}",
-          PULUMI_API: "https://api.pulumi-staging.io",
-          RANCHER_ACCESS_KEY: "token-74zzn",
-          RANCHER_SECRET_KEY: "${{ secrets.RANCHER_SECRET_KEY }}",
-          RANCHER_INSECURE: "true",
-          RANCHER_URL: "${{ secrets.RANCHER_URL }}",
-          PULUMI_LOCAL_NUGET: "${{ github.workspace }}/nuget",
-        }
+          // eslint-disable-next-line no-template-curly-in-string
+          PULUMI_ACCESS_TOKEN: '${{ secrets.PULUMI_ACCESS_TOKEN }}',
+          PULUMI_API: 'https://api.pulumi-staging.io',
+          RANCHER_ACCESS_KEY: 'token-74zzn',
+          // eslint-disable-next-line no-template-curly-in-string
+          RANCHER_SECRET_KEY: '${{ secrets.RANCHER_SECRET_KEY }}',
+          RANCHER_INSECURE: 'true',
+          // eslint-disable-next-line no-template-curly-in-string
+          RANCHER_URL: '${{ secrets.RANCHER_URL }}',
+          // eslint-disable-next-line no-template-curly-in-string
+          PULUMI_LOCAL_NUGET: '${{ github.workspace }}/nuget',
+        },
       }),
   }
 
   constructor(name, env, on, params?: Partial<GithubWorkflow>) {
-    Object.assign(this, {name}, {env}, on, params);
+    Object.assign(this, { name }, { env }, on, params);
   }
 }
 
 export class GithubReleaseWorkFlow extends GithubWorkflow {
   jobs = Object.assign(this.jobs, {
     publish: {
-      "runs-on": "ubuntu-latest",
-      needs: "test",
+      'runs-on': 'ubuntu-latest',
+      needs: 'test',
       on: {
-        push: { tags: [ "v*.[0-99]"] }
+        push: { tags: ['v*.[0-99]'] },
       },
       steps: [
         {
-          name: "Checkout",
-          uses: "actions/checkout@v2",
+          name: 'Checkout',
+          uses: 'actions/checkout@v2',
         },
         {
-          name: "Configure AWS Credentials",
-          uses: "aws-actions/configure-aws-credentials@v1",
+          name: 'Configure AWS Credentials',
+          uses: 'aws-actions/configure-aws-credentials@v1',
           with: {
-            "aws-access-key-id": "${{ secrets.AWS_ACCESS_KEY_ID }}",
-            "aws-secret-access-key": "${{ secrets.AWS_SECRET_ACCESS_KEY }}",
-            "aws-region": "us-east-2",
-            "role-to-assume": "${{ secrets.AWS_UPLOAD_ROLE_ARN }}",
-            "role-external-id": "upload-pulumi-release",
-            "role-duration-seconds": 3600,
-            "role-session-name": "${{ env.PROVIDER}}@githubActions",
-          }
+            // eslint-disable-next-line no-template-curly-in-string
+            'aws-access-key-id': '${{ secrets.AWS_ACCESS_KEY_ID }}',
+            // eslint-disable-next-line no-template-curly-in-string
+            'aws-secret-access-key': '${{ secrets.AWS_SECRET_ACCESS_KEY }}',
+            'aws-region': 'us-east-2',
+            // eslint-disable-next-line no-template-curly-in-string
+            'role-to-assume': '${{ secrets.AWS_UPLOAD_ROLE_ARN }}',
+            'role-external-id': 'upload-pulumi-release',
+            'role-duration-seconds': 3600,
+            // eslint-disable-next-line no-template-curly-in-string
+            'role-session-name': '${{ env.PROVIDER}}@githubActions',
+          },
         },
         {
-          name: "Setup Go",
-          uses: "actions/setup-go@v2",
+          name: 'Setup Go',
+          uses: 'actions/setup-go@v2',
           with: {
-            "go-version": "1.13.x"
-          }
+            'go-version': '1.13.x',
+          },
         },
         {
-          name: "Run GoRelease",
-          uses: "goreleaser/goreleaser-action@v2",
+          name: 'Run GoRelease',
+          uses: 'goreleaser/goreleaser-action@v2',
           with: {
-            version: "latest",
-            args: "release --rm-dist"
+            version: 'latest',
+            args: 'release --rm-dist',
           },
           env: {
-            "GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}",
-          }
-        }
-      ]
-    }
+            // eslint-disable-next-line no-template-curly-in-string
+            GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
+          },
+        },
+      ],
+    },
   })
 }
