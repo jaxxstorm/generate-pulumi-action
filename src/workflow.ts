@@ -149,13 +149,13 @@ export class GithubWorkflow implements Workflow {
     lint: new BaseJob('lint', { container: 'golangci/golangci-lint:v1.25.1' }).addStep(
       {
         name: 'Run golangci',
-        run: 'make lint_provider',
+        run: 'make -f Makefile.github lint_provider',
       },
     ),
     prerequisites: new BaseJob('prerequisites')
       .addStep({
         name: 'Build tfgen & provider binaries',
-        run: 'make provider',
+        run: 'make  -f Makefile.github provider',
       })
       .addStep(
         {
@@ -175,7 +175,7 @@ export class GithubWorkflow implements Workflow {
       .addStep({
         name: 'Build SDK',
         // eslint-disable-next-line no-template-curly-in-string
-        run: 'make build_${{ matrix.language }}',
+        run: 'make -f Makefile.github build_${{ matrix.language }}',
       })
       .addStep({
         name: 'Upload artifacts',
