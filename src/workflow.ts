@@ -47,6 +47,14 @@ class BaseJob implements Job {
       uses: 'actions/checkout@v2',
     },
     {
+      name: 'Checkout Scripts Repo',
+      uses: 'actions/checkout@v2',
+      with: {
+        repository: 'pulumi/scripts',
+        path: 'ci-scripts',
+      },
+    },
+    {
       name: 'Unshallow clone for tags',
       run: 'git fetch --prune --unshallow',
     },
@@ -70,6 +78,10 @@ class BaseJob implements Job {
       with: {
         repo: 'pulumi/pulumictl',
       },
+    },
+    {
+      name: 'Install Pulumi CLI',
+      uses: 'pulumi/action-install-pulumi-cli@releases/v1',
     },
   ];
   constructor(name, params?: Partial<BaseJob>) {
@@ -178,6 +190,10 @@ export class GithubWorkflow implements Workflow {
         run: 'make -f Makefile.github build_${{ matrix.language }}',
       })
       .addStep({
+        name: 'Check worktree clean',
+        run: './ci-scripts/ci/check-worktree-is-clean',
+      })
+      .addStep({
         name: 'Upload artifacts',
         uses: 'actions/upload-artifact@v2',
         with: {
@@ -201,13 +217,13 @@ export class GithubWorkflow implements Workflow {
         },
       })
       .addStep({
+        name: 'Check worktree clean',
+        uses: 'jaxxstorm/action-git-worktree-clean@release/v1-alpha',
+      })
+      .addStep({
         name: 'Update path',
         // eslint-disable-next-line no-template-curly-in-string
         run: 'echo ::add-path::${{ github.workspace }}/bin',
-      })
-      .addStep({
-        name: 'Install Pulumi CLI',
-        uses: 'pulumi/action-install-pulumi-cli@releases/v1',
       })
       .addStep({
         name: 'Install pipenv',
@@ -216,12 +232,12 @@ export class GithubWorkflow implements Workflow {
       .addStep({
         name: 'Install dependencies',
         // eslint-disable-next-line no-template-curly-in-string
-        run: './scripts/install-${{ matrix.language}}-sdk',
+        run: 'make -f Makefile.github install_${{ matrix.language}}_sdk',
       })
       .addStep({
         name: 'Run tests',
         // eslint-disable-next-line no-template-curly-in-string
-        run: 'cd examples && go test -v -count=1 -cover -timeout 2h -tags=${{ matrix.langage }} -parallel 4 .',
+        run: 'cd examples && go test -v -count=1 -cover -timeout 2h -tags=${{ matrix.language }} -parallel 4 .',
         env: {
           // eslint-disable-next-line no-template-curly-in-string
           PULUMI_ACCESS_TOKEN: '${{ secrets.PULUMI_ACCESS_TOKEN }}',

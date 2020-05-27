@@ -10,6 +10,11 @@ jobs:
     steps:
     - name: Checkout Repo
       uses: actions/checkout@v2
+    - name: Checkout Scripts Repo
+      uses: actions/checkout@v2
+      with:
+        path: ci-scripts
+        repository: pulumi/scripts
     - name: Unshallow clone for tags
       run: git fetch --prune --unshallow
     - name: Install Go
@@ -24,6 +29,8 @@ jobs:
       uses: jaxxstorm/action-install-gh-release@release/v1-alpha
       with:
         repo: pulumi/pulumictl
+    - name: Install Pulumi CLI
+      uses: pulumi/action-install-pulumi-cli@releases/v1
     - name: Setup Node
       uses: actions/setup-node@v1
       with:
@@ -47,6 +54,8 @@ jobs:
         -exec chmod +x {} \;
     - name: Build SDK
       run: make -f Makefile.github build_${{ matrix.language }}
+    - name: Check worktree clean
+      run: ./ci-scripts/ci/check-worktree-is-clean
     - name: Upload artifacts
       uses: actions/upload-artifact@v2
       with:
@@ -66,6 +75,11 @@ jobs:
     steps:
     - name: Checkout Repo
       uses: actions/checkout@v2
+    - name: Checkout Scripts Repo
+      uses: actions/checkout@v2
+      with:
+        path: ci-scripts
+        repository: pulumi/scripts
     - name: Unshallow clone for tags
       run: git fetch --prune --unshallow
     - name: Install Go
@@ -80,6 +94,8 @@ jobs:
       uses: jaxxstorm/action-install-gh-release@release/v1-alpha
       with:
         repo: pulumi/pulumictl
+    - name: Install Pulumi CLI
+      uses: pulumi/action-install-pulumi-cli@releases/v1
     - name: Run golangci
       run: make -f Makefile.github lint_provider
   prerequisites:
@@ -88,6 +104,11 @@ jobs:
     steps:
     - name: Checkout Repo
       uses: actions/checkout@v2
+    - name: Checkout Scripts Repo
+      uses: actions/checkout@v2
+      with:
+        path: ci-scripts
+        repository: pulumi/scripts
     - name: Unshallow clone for tags
       run: git fetch --prune --unshallow
     - name: Install Go
@@ -102,6 +123,8 @@ jobs:
       uses: jaxxstorm/action-install-gh-release@release/v1-alpha
       with:
         repo: pulumi/pulumictl
+    - name: Install Pulumi CLI
+      uses: pulumi/action-install-pulumi-cli@releases/v1
     - name: Build tfgen & provider binaries
       run: make  -f Makefile.github provider
     - name: Upload artifacts
@@ -116,6 +139,11 @@ jobs:
     steps:
     - name: Checkout Repo
       uses: actions/checkout@v2
+    - name: Checkout Scripts Repo
+      uses: actions/checkout@v2
+      with:
+        path: ci-scripts
+        repository: pulumi/scripts
     - name: Unshallow clone for tags
       run: git fetch --prune --unshallow
     - name: Install Go
@@ -130,6 +158,8 @@ jobs:
       uses: jaxxstorm/action-install-gh-release@release/v1-alpha
       with:
         repo: pulumi/pulumictl
+    - name: Install Pulumi CLI
+      uses: pulumi/action-install-pulumi-cli@releases/v1
     - name: Setup Node
       uses: actions/setup-node@v1
       with:
@@ -156,14 +186,14 @@ jobs:
       with:
         name: ${{ matrix.language  }}-sdk
         path: ${{ github.workspace}}/sdk/${{ matrix.language }}
+    - name: Check worktree clean
+      uses: jaxxstorm/action-git-worktree-clean@release/v1-alpha
     - name: Update path
       run: echo ::add-path::${{ github.workspace }}/bin
-    - name: Install Pulumi CLI
-      uses: pulumi/action-install-pulumi-cli@releases/v1
     - name: Install pipenv
       uses: dschep/install-pipenv-action@v1
     - name: Install dependencies
-      run: ./scripts/install-${{ matrix.language}}-sdk
+      run: make -f Makefile.github install_${{ matrix.language}}_sdk
     - env:
         PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
         PULUMI_API: https://api.pulumi-staging.io
@@ -173,7 +203,7 @@ jobs:
         RANCHER_SECRET_KEY: ${{ secrets.RANCHER_SECRET_KEY }}
         RANCHER_URL: ${{ secrets.RANCHER_URL }}
       name: Run tests
-      run: cd examples && go test -v -count=1 -cover -timeout 2h -tags=${{ matrix.langage
+      run: cd examples && go test -v -count=1 -cover -timeout 2h -tags=${{ matrix.language
         }} -parallel 4 .
     strategy:
       fail-fast: true
