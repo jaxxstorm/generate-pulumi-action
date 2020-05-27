@@ -155,6 +155,7 @@ export class GithubWorkflow implements Workflow {
   env: object;
   on: any = {
     pull_request: { branches: ['master'] },
+    push: { branches: ['master'] },
   };
   // env = new Env(this.provider);
   jobs: any = {

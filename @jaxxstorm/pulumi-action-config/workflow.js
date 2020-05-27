@@ -125,6 +125,7 @@ export class GithubWorkflow {
     constructor(name, env, on, params) {
         this.on = {
             pull_request: { branches: ['master'] },
+            push: { branches: ['master'] },
         };
         // env = new Env(this.provider);
         this.jobs = {
